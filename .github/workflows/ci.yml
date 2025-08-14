@@ -24,13 +24,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           sudo apt-get update
-          sudo apt-get install -y default-jre wget unzip
+          sudo apt-get install -y default-jre wget unzip nodejs npm
 
       - name: Install Allure
         run: |
-          wget https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/2.27.4/allure-commandline-2.27.4.zip -O allure.zip
-          unzip allure.zip -d allure
-          echo "$PWD/allure/bin" >> $GITHUB_PATH
+          npm install -g allure-commandline --save-dev
+          echo "$(npm bin -g)" >> $GITHUB_PATH
 
       - name: Run tests with Allure
         run: |
