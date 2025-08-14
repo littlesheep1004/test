@@ -1,0 +1,70 @@
+# .github/workflows/ci.yml
+
+name: Run API Tests with Allure
+
+on:
+  push:
+    branches: [ main, master ]  # 当推送到 main 或 master 分支时触发
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  run-api-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 设置 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 3. 安装依赖
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # 4. 运行 pytest 并生成 Allure 结果
+      - name: Run pytest with Allure
+        run: |
+          pytest tests/test_login.py --alluredir=allure-results -v
+
+      # 🔍 调试：检查 allure-results 是否生成了数据
+      - name: Check Allure Results
+        run: |
+          if [ -d "allure-results" ]; then
+            echo "✅ allure-results directory exists."
+            ls -la allure-results/
+            # 检查是否有 JSON 文件
+            find allure-results -name "*.json" -type f
+          else
+            echo "❌ ERROR: allure-results directory does NOT exist!"
+            exit 1
+          fi
+
+      # 5. 安装 Allure CLI 并生成 HTML 报告
+      - name: Generate Allure Report
+        run: |
+          # 下载并安装 Allure CLI
+          wget https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/2.22.0/allure-commandline-2.22.0.zip
+          unzip allure-commandline-*.zip -d allure-commandline
+          # 生成报告
+          allure-commandline/bin/allure generate --clean allure-results -o allure-report
+
+      # 6. 上传 HTML 报告作为 Artifact（你可以直接下载查看）
+      - name: Upload Allure HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-html-report
+          path: allure-report/
+
+      # 🌐 可选：部署到 GitHub Pages（需要先启用 GitHub Pages）
+      # - name: Deploy Report to GitHub Pages
+      #   uses: peaceiris/actions-gh-pages@v4
+      #   with:
+      #     github_token: ${{ secrets.GITHUB_TOKEN }}
+      #     publish_dir: ./allure-report
