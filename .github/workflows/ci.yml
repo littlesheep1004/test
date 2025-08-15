@@ -1,5 +1,3 @@
-# .github/workflows/ci.yml
-
 name: Run API Tests with Allure Report
 
 on:
@@ -13,72 +11,60 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 检出代码
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 设置 Python 率
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3. 安装依赖
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
 
-      # 🔍 调试 1: 验证 allure-pytest 是否安装成功
-      - name: Verify allure-pytest is installed
+      # 🔍 调试：确认 allure 插件安装
+      - name: Verify allure-pytest
         run: |
           pip show allure-pytest
-          python -c "import allure_pytest; print('✅ allure-pytest is available')"
-
-      - name: Check allure-python-commons
-        run: |
+          python -c "import allure_pytest; print('✅ allure-pytest loaded')"
           pip show allure-python-commons
-          python -c "from allure_commons import plugin_manager; print('✅ allure_commons is available')"
 
-      - name: Trace pytest plugin loading
-        run: |
-          pytest --trace-config -x
-
-      # 🔍 调试 2: 检查 pytest 是否加载了 allure 插件
-      - name: Check pytest plugins
-        run: |
-          pytest --version --verbose
-
-      # 4. 运行测试并生成 Allure 结果
+      # 🧪 运行测试
       - name: Run pytest with Allure
         run: |
-          pytest tests/test_login.py --alluredir=allure-results -v
-          echo "---- allure-results content ----"
-          ls -la allure-results
-          find allure-results -type f -name "*.json"
-
-
-      # 🔍 调试 3: 检查 allure-results 目录内容
-      - name: Check Allure Results Structure
-        run: |
-          echo "📁 Files in allure-results:"
+          pytest tests/test_login.py -v --tb=short --alluredir=allure-results
+          echo "📁 allure-results content:"
           ls -la allure-results/
-          echo "🔍 Found .json files:"
-          find allure-results -name "*.json" -type f -exec basename {} \; -exec head -3 {} \; -exec echo "..." \;
+          find allure-results -name "*.json" -type f -exec basename {} \;
 
-      # 5. 生成 Allure 报告
+      # 🔍 检查结果是否为空
+      - name: Check Allure Results Not Empty
+        run: |
+          if [ ! "$(ls -A allure-results 2>/dev/null)" ]; then
+            echo "❌ Error: allure-results is empty! Did tests run?"
+            exit 1
+          fi
+
+      # 📦 安装 Allure CLI
+      - name: Download and Setup Allure CLI
+        run: |
+          wget https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/2.22.0/allure-commandline-2.22.0.zip
+          unzip allure-commandline-*.zip -d allure-cli
+          chmod +x allure-cli/allure-*/bin/allure
+          # 添加到 PATH
+          echo "$(pwd)/allure-cli/allure-2.22.0/bin" >> $GITHUB_PATH
+
+      # 📊 生成报告
       - name: Generate Allure Report
         run: |
-          # 下载 Allure CLI
-          wget https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/2.22.0/allure-commandline-2.22.0.zip
-          unzip allure-commandline-*.zip -d allure-commandline
-          
-          # ✅ 使用正确路径
-          allure-commandline/allure-2.22.0/bin/allure generate --clean allure-results -o allure-report
+          allure generate allure-results -o allure-report --clean
+          echo "✅ Allure report generated at allure-report/"
 
-      # 6. 上传 HTML 报告作为 Artifact
+      # 📤 上传报告
       - name: Upload Allure HTML Report
         uses: actions/upload-artifact@v4
         with:
           name: allure-html-report
           path: allure-report/
-          
+          retention-days: 7
