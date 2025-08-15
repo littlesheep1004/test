@@ -1,10 +1,10 @@
 # .github/workflows/ci.yml
 
-name: Run API Tests with Allure
+name: Run API Tests with Allure Report
 
 on:
   push:
-    branches: [ main, master ]  # 当推送到 main 或 master 分支时触发
+    branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 
@@ -17,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 设置 Python 环境
+      # 2. 设置 Python 率
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -28,43 +28,43 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      # 4. 运行 pytest 并生成 Allure 结果
+      # 🔍 调试 1: 验证 allure-pytest 是否安装成功
+      - name: Verify allure-pytest is installed
+        run: |
+          pip show allure-pytest
+          python -c "import allure_pytest; print('✅ allure-pytest is available')"
+
+      # 🔍 调试 2: 检查 pytest 是否加载了 allure 插件
+      - name: Check pytest plugins
+        run: |
+          pytest --version --verbose
+
+      # 4. 运行测试并生成 Allure 结果
       - name: Run pytest with Allure
         run: |
-          pytest tests/test_login.py --alluredir=allure-results -v
+          pytest tests/test_login.py --alluredir=allure-results -v --tb=short
 
-      # 🔍 调试：检查 allure-results 是否生成了数据
-      - name: Check Allure Results
+      # 🔍 调试 3: 检查 allure-results 目录内容
+      - name: Check Allure Results Structure
         run: |
-          if [ -d "allure-results" ]; then
-            echo "✅ allure-results directory exists."
-            ls -la allure-results/
-            # 检查是否有 JSON 文件
-            find allure-results -name "*.json" -type f
-          else
-            echo "❌ ERROR: allure-results directory does NOT exist!"
-            exit 1
-          fi
+          echo "📁 Files in allure-results:"
+          ls -la allure-results/
+          echo "🔍 Found .json files:"
+          find allure-results -name "*.json" -type f -exec basename {} \; -exec head -3 {} \; -exec echo "..." \;
 
-      # 5. 安装 Allure CLI 并生成 HTML 报告
+      # 5. 生成 Allure 报告
       - name: Generate Allure Report
         run: |
-          # 下载并安装 Allure CLI
+          # 下载 Allure CLI
           wget https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/2.22.0/allure-commandline-2.22.0.zip
           unzip allure-commandline-*.zip -d allure-commandline
-          # 生成报告
+          
+          # ✅ 使用正确路径
           allure-commandline/allure-2.22.0/bin/allure generate --clean allure-results -o allure-report
 
-      # 6. 上传 HTML 报告作为 Artifact（你可以直接下载查看）
+      # 6. 上传 HTML 报告作为 Artifact
       - name: Upload Allure HTML Report
         uses: actions/upload-artifact@v4
         with:
           name: allure-html-report
           path: allure-report/
-
-      # 🌐 可选：部署到 GitHub Pages（需要先启用 GitHub Pages）
-      # - name: Deploy Report to GitHub Pages
-      #   uses: peaceiris/actions-gh-pages@v4
-      #   with:
-      #     github_token: ${{ secrets.GITHUB_TOKEN }}
-      #     publish_dir: ./allure-report
