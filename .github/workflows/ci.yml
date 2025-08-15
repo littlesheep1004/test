@@ -51,7 +51,11 @@ jobs:
       # 4. 运行测试并生成 Allure 结果
       - name: Run pytest with Allure
         run: |
-          pytest tests/test_login.py --alluredir=allure-results -v --tb=short
+          pytest tests/test_login.py --alluredir=allure-results -v
+          echo "---- allure-results content ----"
+          ls -la allure-results
+          find allure-results -type f -name "*.json"
+
 
       # 🔍 调试 3: 检查 allure-results 目录内容
       - name: Check Allure Results Structure
