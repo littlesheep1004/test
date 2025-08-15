@@ -39,6 +39,10 @@ jobs:
           pip show allure-python-commons
           python -c "from allure_commons import plugin_manager; print('✅ allure_commons is available')"
 
+      - name: Trace pytest plugin loading
+        run: |
+          pytest --trace-config -x
+
       # 🔍 调试 2: 检查 pytest 是否加载了 allure 插件
       - name: Check pytest plugins
         run: |
