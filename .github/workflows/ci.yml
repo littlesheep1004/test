@@ -34,6 +34,11 @@ jobs:
           pip show allure-pytest
           python -c "import allure_pytest; print('✅ allure-pytest is available')"
 
+      - name: Check allure-python-commons
+        run: |
+          pip show allure-python-commons
+          python -c "from allure_commons import plugin_manager; print('✅ allure_commons is available')"
+
       # 🔍 调试 2: 检查 pytest 是否加载了 allure 插件
       - name: Check pytest plugins
         run: |
